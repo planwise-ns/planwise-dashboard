@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlanWise</title>
+<style>
+/* ===== Global Styles ===== */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Georgia',serif;background:#f6f1eb;color:#3a3a3a;transition:background 0.5s,color 0.5s;}
+body.dark{background:#2c2c2c;color:#e0e0e0;}
+header{background:linear-gradient(90deg,#8c7b6b,#c1ad8f);padding:20px;text-align:center;color:white;box-shadow:0 5px 15px rgba(0,0,0,0.2);}
+h1{margin-bottom:5px;} h2{margin-bottom:10px;}
+.container{max-width:1200px;margin:20px auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;}
+.card{background:#fdf7ee;padding:20px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.1);transition:transform 0.4s ease,box-shadow 0.4s ease;}
+body.dark .card{background:#3b3b3b;}
+.card:hover{transform:translateY(-5px);box-shadow:0 10px 20px rgba(0,0,0,0.2);}
+input, button, textarea, select{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc;font-size:16px;}
+body.dark input, body.dark textarea, body.dark select{background:#4b4b4b;border:1px solid #666;color:#e0e0e0;}
+button{background:#8c7b6b;color:white;border:none;cursor:pointer;transition:background 0.3s;}
+button:hover{background:#c1ad8f;}
+ul{list-style:none;padding:0;max-height:200px;overflow-y:auto;}
+li{background:#f4eadb;margin:8px 0;padding:10px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;transition:transform 0.2s ease, background 0.3s;}
+li.completed{text-decoration:line-through;background:#cfc3b0;}
+body.dark li.completed{background:#555;}
+li:hover{transform:translateX(5px);}
+.btn-small{padding:5px 10px;font-size:14px;margin-left:5px;border-radius:5px;}
+.delete{background:#b0836c;}
+textarea{resize:none;height:80px;}
+#timerDisplay{font-size:20px;margin-top:10px;text-align:center;}
+.badge{display:inline-block;padding:5px 10px;border-radius:12px;font-size:12px;margin-left:5px;color:white;transition:transform 0.3s;}
+#dateTime{margin-top:10px;font-size:16px;text-align:center;color:#555;}
+.collapsible{background:#8c7b6b;color:white;cursor:pointer;padding:10px;border:none;text-align:left;outline:none;font-size:16px;border-radius:8px;margin-bottom:10px;transition:background 0.3s;}
+.collapsible:hover{background:#c1ad8f;}
+body.dark .collapsible{background:#c1ad8f;color:#3b3b3b;}
+.content{padding:0 10px;display:none;overflow:hidden;}
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+th,td{border:1px solid #ccc;padding:8px;text-align:center;}
+body.dark th,body.dark td{border:1px solid #555;}
+th{background:#8c7b6b;color:white;}
+td input[type=checkbox]{width:18px;height:18px;}
+.progress-bar{background:#e0e0e0;border-radius:10px;height:15px;margin-top:5px;}
+.progress-fill{background:#8c7b6b;height:100%;border-radius:10px;width:0%;transition:width 0.5s;}
+.mood-entry{padding:5px 10px;margin:3px 0;border-radius:8px;color:white;opacity:0;animation:fadeIn 1s forwards;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;}
+.mood-emoji{margin-right:10px;font-size:20px;}
+.quote{margin-top:5px;font-style:italic;color:#5c4033;opacity:0;animation:fadeIn 2s forwards;flex:1 1 100%;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🌟 PlanWise</h1>
+<p>Organize tasks, notes, study, habits & track progress!</p>
+<p id="dateTime"></p>
+<button id="themeToggle">Toggle Dark Mode</button>
+<button onclick="startFresh()">Start Fresh</button>
+</header>
+
+<div class="container">
+
+<!-- Assignments -->
+<div class="card">
+  <button class="collapsible">📚 Assignments</button>
+  <div class="content">
+    <input type="text" id="assignmentInput" placeholder="Enter assignment">
+    <input type="date" id="dueDateInput">
+    <select id="prioritySelect">
+      <option value="Low">Low Priority</option>
+      <option value="Medium">Medium Priority</option>
+      <option value="High">High Priority</option>
+    </select>
+    <button onclick="addAssignment()">Add Assignment</button>
+    <button class="refresh" onclick="renderAssignments()">Refresh</button>
+    <ul id="assignmentList"></ul>
+  </div>
+</div>
+
+<!-- Quick Notes -->
+<div class="card">
+  <button class="collapsible">📝 Quick Notes</button>
+  <div class="content">
+    <textarea id="noteInput" placeholder="Write your note..."></textarea>
+    <button onclick="addNote()">Add Note</button>
+    <button class="refresh" onclick="renderNotes()">Refresh</button>
+    <ul id="noteList"></ul>
+  </div>
+</div>
+
+<!-- Pomodoro -->
+<div class="card">
+  <button class="collapsible">⏱ Study Timer / Pomodoro</button>
+  <div class="content">
+    <input type="number" id="minutesInput" placeholder="Minutes">
+    <button onclick="startTimer()">Start Timer</button>
+    <p id="timerDisplay">00:00</p>
+    <p>Pomodoros Completed: <span id="pomodoroCount">0</span></p>
+  </div>
+</div>
+
+<!-- Goals & Habits -->
+<div class="card">
+  <button class="collapsible">🏆 Goals & Habits</button>
+  <div class="content">
+    <input type="text" id="goalInput" placeholder="Add new goal/habit">
+    <button onclick="addGoal()">Add Goal</button>
+    <button class="refresh" onclick="renderGoals()">Refresh</button>
+    <div id="goalsContainer"></div>
+  </div>
+</div>
+
+<!-- Mood & Quotes -->
+<div class="card">
+  <button class="collapsible">😊 Mood & Quotes</button>
+  <div class="content">
+    <select id="moodSelect">
+      <option value="">Select Mood</option>
+      <option value="😁">😁 Excellent</option>
+      <option value="🙂">🙂 Good</option>
+      <option value="😐">😐 Okay</option>
+      <option value="😔">😔 Bad</option>
+      <option value="😢">😢 Very Bad</option>
+    </select>
+    <textarea id="moodNote" placeholder="Optional reflection..."></textarea>
+    <button onclick="addMood()">Add Mood Entry</button>
+    <button class="refresh" onclick="renderMoodChart()">Refresh</button>
+    <div id="moodChart"></div>
+  </div>
+</div>
+
+<!-- Progress Overview -->
+<div class="card">
+  <button class="collapsible">📊 Progress Overview</button>
+  <div class="content">
+    <h3>Assignments Completed</h3>
+    <div id="assignmentProgressBar" class="progress-bar"><div class="progress-fill"></div></div>
+    <h3>Habits Streak / Completion</h3>
+    <div id="habitProgressBar" class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ===== Date & Time =====
+function updateDateTime(){
+  const dt=new Date();
+  document.getElementById("dateTime").innerText=dt.toLocaleString();
+}
+setInterval(updateDateTime,1000);
+
+// ===== Collapsible =====
+document.querySelectorAll(".collapsible").forEach(c=>{
+  c.addEventListener("click",()=>{ 
+    const content=c.nextElementSibling;
+    content.style.display=content.style.display==="block"?"none":"block";
+  });
+});
+
+// ===== Theme Toggle =====
+document.getElementById("themeToggle").addEventListener("click",()=>document.body.classList.toggle("dark"));
+
+// ===== Local Storage =====
+let assignments = JSON.parse(localStorage.getItem("assignments")||"[]");
+let notes = JSON.parse(localStorage.getItem("notes")||"[]");
+let goals = JSON.parse(localStorage.getItem("goals")||"[]");
+let moods = JSON.parse(localStorage.getItem("moods")||"[]");
+let pomodoroCount = parseInt(localStorage.getItem("pomodoroCount")||"0");
+
+function saveAssignments(){localStorage.setItem("assignments",JSON.stringify(assignments));}
+function saveNotes(){localStorage.setItem("notes",JSON.stringify(notes));}
+function saveGoals(){localStorage.setItem("goals",JSON.stringify(goals));}
+function saveMoods(){localStorage.setItem("moods",JSON.stringify(moods));}
+function savePomodoro(){localStorage.setItem("pomodoroCount",pomodoroCount);}
+
+// ===== Assignments =====
+function addAssignment(){
+  const text=document.getElementById("assignmentInput").value.trim();
+  const due=document.getElementById("dueDateInput").value;
+  const priority=document.getElementById("prioritySelect").value;
+  if(!text) return alert("Assignment cannot be empty!");
+  assignments.push({text,due,priority,completed:false});
+  saveAssignments(); renderAssignments();
+  document.getElementById("assignmentInput").value="";
+}
+function renderAssignments(){
+  const ul=document.getElementById("assignmentList");
+  ul.innerHTML="";
+  assignments.forEach((a,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`${a.text} ${a.due?`(${a.due})`:''} <span class="badge" style="background:${a.priority==='High'?'#e74c3c':a.priority==='Medium'?'#f1c40f':'#2ecc71'}">${a.priority}</span>`;
+    if(a.completed) li.classList.add("completed");
+    const del=document.createElement("button"); del.className="btn-small delete"; del.textContent="🗑"; del.onclick=()=>{assignments.splice(i,1);saveAssignments();renderAssignments();};
+    const toggle=document.createElement("button"); toggle.className="btn-small"; toggle.textContent="✔"; toggle.onclick=()=>{assignments[i].completed=!assignments[i].completed;saveAssignments();renderAssignments();};
+    li.appendChild(toggle); li.appendChild(del);
+    ul.appendChild(li);
+  });
+  updateProgress();
+}
+
+// ===== Notes =====
+function addNote(){
+  const text=document.getElementById("noteInput").value.trim();
+  if(!text) return alert("Note cannot be empty!");
+  notes.push({text});
+  saveNotes(); renderNotes();
+  document.getElementById("noteInput").value="";
+}
+function renderNotes(){
+  const ul=document.getElementById("noteList"); ul.innerHTML="";
+  notes.forEach((n,i)=>{
+    const li=document.createElement("li");
+    li.textContent=n.text;
+    const del=document.createElement("button"); del.className="btn-small delete"; del.textContent="🗑"; del.onclick=()=>{notes.splice(i,1);saveNotes();renderNotes();};
+    li.appendChild(del); ul.appendChild(li);
+  });
+}
+
+// ===== Goals =====
+function addGoal(){
+  const text=document.getElementById("goalInput").value.trim();
+  if(!text) return alert("Goal cannot be empty!");
+  goals.push({text,completed:false});
+  saveGoals(); renderGoals(); document.getElementById("goalInput").value="";
+}
+function renderGoals(){
+  const container=document.getElementById("goalsContainer"); container.innerHTML="";
+  goals.forEach((g,i)=>{
+    const div=document.createElement("div"); div.style.marginBottom="5px";
+    const span=document.createElement("span"); span.textContent=g.text; if(g.completed) span.style.textDecoration="line-through";
+    const toggle=document.createElement("button"); toggle.className="btn-small"; toggle.textContent="✔"; toggle.onclick=()=>{goals[i].completed=!goals[i].completed;saveGoals();renderGoals();};
+    const del=document.createElement("button"); del.className="btn-small delete"; del.textContent="🗑"; del.onclick=()=>{goals.splice(i,1);saveGoals();renderGoals();};
+    div.appendChild(span); div.appendChild(toggle); div.appendChild(del); container.appendChild(div);
+  });
+  updateProgress();
+}
+
+// ===== Mood & Quotes =====
+function addMood(){
+  const mood=document.getElementById("moodSelect").value;
+  if(!mood) return alert("Please select a mood!");
+  let note=document.getElementById("moodNote").value.trim();
+  if(!note){
+    // Default quotes based on emoji
+    const quotesMap = {
+      "😁":"Today is awesome!",
+      "🙂":"Keep going, you’re doing well.",
+      "😐":"Every day is a chance to improve.",
+      "😔":"It’s okay to feel down, tomorrow is new.",
+      "😢":"This too shall pass."
+    };
+    note = quotesMap[mood] || "";
+  }
+  moods.push({mood,note,date:new Date().toLocaleDateString()});
+  saveMoods(); renderMoodChart();
+  document.getElementById("moodSelect").value=""; document.getElementById("moodNote").value="";
+}
+function renderMoodChart(){
+  const container=document.getElementById("moodChart"); container.innerHTML="";
+  moods.forEach((m,i)=>{
+    const div=document.createElement("div"); div.className="mood-entry"; div.style.background="#8c7b6b";
+    const emojiSpan=document.createElement("span"); emojiSpan.className="mood-emoji"; emojiSpan.textContent=m.mood;
+    const dateSpan=document.createElement("span"); dateSpan.textContent=`(${m.date})`;
+    const quoteDiv=document.createElement("div"); quoteDiv.className="quote"; quoteDiv.textContent=m.note;
+    const del=document.createElement("button"); del.className="btn-small delete"; del.textContent="🗑"; del.onclick=()=>{moods.splice(i,1);saveMoods();renderMoodChart();};
+    div.appendChild(emojiSpan); div.appendChild(dateSpan); div.appendChild(quoteDiv); div.appendChild(del);
+    container.appendChild(div);
+  });
+}
+
+// ===== Progress Bars =====
+function updateProgress(){
+  const totalAssignments=assignments.length;
+  const doneAssignments=assignments.filter(a=>a.completed).length;
+  document.querySelector("#assignmentProgressBar .progress-fill").style.width=totalAssignments?((doneAssignments/totalAssignments)*100)+"%":"0%";
+
+  const totalGoals=goals.length;
+  const doneGoals=goals.filter(g=>g.completed).length;
+  document.querySelector("#habitProgressBar .progress-fill").style.width=totalGoals?((doneGoals/totalGoals)*100)+"%":"0%";
+}
+
+// ===== Pomodoro =====
+let timerInterval;
+function startTimer(){
+  let mins=parseInt(document.getElementById("minutesInput").value);
+  if(isNaN(mins) || mins<=0) return alert("Enter valid minutes!");
+  let seconds=mins*60;
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    let m=Math.floor(seconds/60); let s=seconds%60;
+    document.getElementById("timerDisplay").textContent=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    if(seconds--<=0){clearInterval(timerInterval);pomodoroCount++;savePomodoro();document.getElementById("pomodoroCount").textContent=pomodoroCount;}
+  },1000);
+}
+
+// ===== Start Fresh =====
+function startFresh(){
+  if(confirm("Clear all data?")){
+    localStorage.clear(); assignments=[]; notes=[]; goals=[]; moods=[]; pomodoroCount=0;
+    renderAssignments(); renderNotes(); renderGoals(); renderMoodChart(); document.getElementById("pomodoroCount").textContent="0";
+  }
+}
+
+// Initial Render
+renderAssignments(); renderNotes(); renderGoals(); renderMoodChart();
+document.getElementById("pomodoroCount").textContent=pomodoroCount;
+
+</script>
+
+</body>
+</html>
